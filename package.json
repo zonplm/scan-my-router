@@ -1,0 +1,16 @@
+{
+  "name": "scan-my-router",
+  "version": "0.0.1",
+  "description": "If you have set up your router to allow ssh login through identity.  you can monitor ip connections on your router remotley use this tiny tool",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "router",
+    "monitoring",
+    "dns-lookup"
+  ],
+  "author": "Yong Zhao",
+  "license": "MIT"
+}
