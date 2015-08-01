@@ -10,9 +10,9 @@ var WebScanner = (function () {
         this.user = user;
         this.sshKey = sshKey;
         this.command = command;
-        this.Connections = {};
         this.Summary = {}; //tally hosts by each src ip
         this._connections = [];
+        //default command is to get active connections
         if (!command) {
             this.command = 'cat /proc/net/ip_conntrack';
         }
@@ -24,14 +24,11 @@ var WebScanner = (function () {
         enumerable: true,
         configurable: true
     });
-    WebScanner.prototype.runCmd = function (cmd, cb) {
+    WebScanner.prototype.runCmd = function (cb, cmd) {
         var that = this;
         var cp = require('child_process');
         var callbk = cb;
-        if (typeof (cmd) == 'function') {
-            callbk = cmd;
-        }
-        else {
+        if (cmd) {
             this.command = cmd;
         }
         var cmdline = ['ssh -i', this.sshKey, this.user + '@' + this.host,
@@ -90,7 +87,7 @@ var WebScanner = (function () {
     WebScanner.prototype.lookupHost = function (con, cb) {
         var dns = require('dns');
         if (!con) {
-            cb(null);
+            cb(null, con);
             return;
         }
         try {
@@ -105,7 +102,7 @@ var WebScanner = (function () {
         catch (e) {
             //console.log('lookup for ' + con.dstIp + ' Failed');
             console.log(e);
-            cb(e);
+            cb(e, null);
         }
     };
     WebScanner.prototype.parseResponse = function (output, stderr) {
@@ -114,7 +111,9 @@ var WebScanner = (function () {
         return {
             osInfo: estr[0],
             release: estr[1],
-            response: ar.filter(function (s) { return s.length > 0; })
+            response: ar.filter(function (s) {
+                return s.length > 0;
+            })
         };
     };
     WebScanner.prototype.parseTcpline = function (line) {
@@ -126,8 +125,8 @@ var WebScanner = (function () {
         var conn = {
             srcIp: token[1],
             dstIp: token[2],
-            sport: token[3],
-            dport: token[4]
+            sport: parseInt(token[3]),
+            dport: parseInt(token[4])
         };
         //console.log(conn);
         return conn;

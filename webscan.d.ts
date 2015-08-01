@@ -7,9 +7,9 @@ export interface RawSshResponse {
 export interface WebConnection {
     srcIp: string;
     sport: number;
-    srcHost: string;
+    srcHost?: string;
     dstIp: string;
-    dstHost: string;
+    dstHost?: string;
     dport: number;
 }
 export interface SshClient {
@@ -17,7 +17,13 @@ export interface SshClient {
     user: string;
     port: number;
     sshKey: string;
-    runCmd: (cmd: string, cb: (e: any, d: RawSshResponse) => void) => any;
+    runCmd: (cb: (e: any, d: RawSshResponse) => void, cmd?: string) => any;
+}
+export interface Callback {
+    (error: any, result: any): any;
+}
+export interface AsyncTaskCallback {
+    (item: any, taskcab: (e: any) => void): any;
 }
 export declare class WebScanner implements SshClient {
     host: string;
@@ -25,12 +31,15 @@ export declare class WebScanner implements SshClient {
     user: string;
     sshKey: string;
     command: string;
+    private Summary;
+    private lookedUpCount;
+    private totalCount;
     connections: WebConnection[];
     private _connections;
-    constructor(host: string, port: number, user: string, sshKey: string, command: string);
-    runCmd(cmd: string, cb: (e: any, d: RawSshResponse) => any): void;
+    constructor(host: string, port: number, user: string, sshKey: string, command?: string);
+    runCmd(cb: (e: any, d: RawSshResponse) => any, cmd?: string): void;
     getTcpConnections(cb: (e: any, d: WebConnection[]) => void): void;
-    tally(con: WebConnection): any;
+    tally(con?: WebConnection): any;
     private lookupHost(con, cb);
     private parseResponse(output, stderr);
     private parseTcpline(line);
