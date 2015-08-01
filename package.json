@@ -12,5 +12,13 @@
     "dns-lookup"
   ],
   "author": "Yong Zhao",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zonplm/scan-my-router.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zonplm/scan-my-router/issues"
+  },
+  "homepage": "https://github.com/zonplm/scan-my-router"
 }
