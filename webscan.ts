@@ -74,7 +74,7 @@ export class WebScanner implements SshClient {
                 callbk.call(that, err, stderr);
             }
             else {
-                callbk.call(that, null, that.parseResponse(stdout, stderr));
+                callbk.call(that, null, WebScanner.parseResponse(stdout, stderr));
             }
         })
     }
@@ -85,7 +85,7 @@ export class WebScanner implements SshClient {
 
         this.runCmd(function (err, resp:RawSshResponse) {
             console.log(resp.response.length);
-            var conns  = resp.response.map(that.parseTcpline);
+            var conns  = resp.response.map(WebScanner.parseTcpline);
             that._connections.push(conns);
             //reverse look up dstHost for each dstIp, only return the first hostname
             this.totalCount = conns.length;
@@ -147,7 +147,7 @@ export class WebScanner implements SshClient {
         }
     }
 
-    private parseResponse(output:string, stderr:string):RawSshResponse {
+    private static parseResponse(output:string, stderr:string):RawSshResponse {
         var ar = output.split('\n');
         var estr = stderr.split('\n');
         return {
@@ -159,7 +159,7 @@ export class WebScanner implements SshClient {
         };
     }
 
-    private  parseTcpline(line:string):WebConnection {
+    private static parseTcpline(line:string):WebConnection {
         //console.log(typeof(line));
         var token = /src=(.+)\sdst=(.+)\ssport=(\d+)\sdport=(\d+)\ssrc/.exec(line);
         //console.log(token);

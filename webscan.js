@@ -40,7 +40,7 @@ var WebScanner = (function () {
                 callbk.call(that, err, stderr);
             }
             else {
-                callbk.call(that, null, that.parseResponse(stdout, stderr));
+                callbk.call(that, null, WebScanner.parseResponse(stdout, stderr));
             }
         });
     };
@@ -49,7 +49,7 @@ var WebScanner = (function () {
         var async = require('async');
         this.runCmd(function (err, resp) {
             console.log(resp.response.length);
-            var conns = resp.response.map(that.parseTcpline);
+            var conns = resp.response.map(WebScanner.parseTcpline);
             that._connections.push(conns);
             //reverse look up dstHost for each dstIp, only return the first hostname
             this.totalCount = conns.length;
@@ -105,7 +105,7 @@ var WebScanner = (function () {
             cb(e, null);
         }
     };
-    WebScanner.prototype.parseResponse = function (output, stderr) {
+    WebScanner.parseResponse = function (output, stderr) {
         var ar = output.split('\n');
         var estr = stderr.split('\n');
         return {
@@ -116,7 +116,7 @@ var WebScanner = (function () {
             })
         };
     };
-    WebScanner.prototype.parseTcpline = function (line) {
+    WebScanner.parseTcpline = function (line) {
         //console.log(typeof(line));
         var token = /src=(.+)\sdst=(.+)\ssport=(\d+)\sdport=(\d+)\ssrc/.exec(line);
         //console.log(token);
