@@ -1,9 +1,11 @@
 ///<reference path="typings\node\node.d.ts"/>
+///<reference path="typings\q\Q.d.ts"/>
 /**
  * Created by Z-On-_000 on 7/31/2015.
  */
 "use strict";
-//import _ = require('underscore');
+var Q = require('q');
+
 export interface RawSshResponse {
     osInfo: string;
     release: string;
@@ -24,7 +26,7 @@ export interface SshClient {
     user: string;
     port: number;
     sshKey: string;
-    runCmd: ( cb:(e:any, d:RawSshResponse) => void, cmd?:string) => any
+    runCmd: ( cmd?:string) => Q.Promise<RawSshResponse>
 }
 
 export interface Callback {
@@ -34,6 +36,7 @@ export interface Callback {
 export interface AsyncTaskCallback {
     (item:any, taskcab: (e:any) => void)
 }
+
 
 export class WebScanner implements SshClient {
     private Summary;
@@ -58,38 +61,42 @@ export class WebScanner implements SshClient {
         }
     }
 
-    public runCmd( cb:(e:any, d:RawSshResponse) => any, cmd?: string) {
+    //return a ssh call response promise
+    public runCmd( cmd?: string) : Q.Promise<RawSshResponse> {
         var that = this;
         var cp = require('child_process');
-        var callbk = cb;
         if(cmd) {
             this.command = cmd;
         }
+        var defered = Q.defer();
         var cmdline = ['ssh -i', this.sshKey, this.user + '@' + this.host,
             "'" + this.command + "'"].join(' ');
         console.log("running " + cmdline);
         console.log("...");
         cp.exec(cmdline, function (err, stdout, stderr) {
             if (err) {
-                callbk.call(that, err, stderr);
+                defered.reject(err);
             }
             else {
-                callbk.call(that, null, that.parseResponse(stdout, stderr));
+                var sshRsp = WebScanner.parseResponse(stdout, stderr);
+                defered.resolve(sshRsp);
             }
         })
+        return defered.promise;
     }
 
     public getTcpConnections(cb:(e:any, d:WebConnection[]) => void) {
         var that = this;
         var async = require('async');
 
-        this.runCmd(function (err, resp:RawSshResponse) {
+        this.runCmd()
+        .then(function (resp:RawSshResponse) {
             console.log(resp.response.length);
-            var conns  = resp.response.map(that.parseTcpline);
+            var conns  = resp.response.map(WebScanner.parseTcpline);
             that._connections.push(conns);
             //reverse look up dstHost for each dstIp, only return the first hostname
-            this.totalCount = conns.length;
-            this.lookedUpCount = 0;
+            that.totalCount = conns.length;
+            that.lookedUpCount = 0;
             async.each(conns, function (conn, ecb) {
                     var scanner = that;
                     scanner.lookupHost(conn, function (e, d) {
@@ -101,8 +108,10 @@ export class WebScanner implements SshClient {
                 },
                 function (err) {
                     console.log('lookup finished: ' + err);
-                    cb(err, conns);
                 });
+        },
+        function(reason){
+            console.log(reason);
         });
     }
 
@@ -147,7 +156,7 @@ export class WebScanner implements SshClient {
         }
     }
 
-    private parseResponse(output:string, stderr:string):RawSshResponse {
+    private static parseResponse(output:string, stderr:string):RawSshResponse {
         var ar = output.split('\n');
         var estr = stderr.split('\n');
         return {
@@ -159,7 +168,7 @@ export class WebScanner implements SshClient {
         };
     }
 
-    private  parseTcpline(line:string):WebConnection {
+    private static parseTcpline(line:string):WebConnection {
         //console.log(typeof(line));
         var token = /src=(.+)\sdst=(.+)\ssport=(\d+)\sdport=(\d+)\ssrc/.exec(line);
         //console.log(token);

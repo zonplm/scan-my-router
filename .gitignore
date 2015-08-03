@@ -45,3 +45,5 @@ myrouter.json
 .idea
 *.map
 typings/node/node.d.ts
+node_modules/q/CHANGES.md
+node_modules
