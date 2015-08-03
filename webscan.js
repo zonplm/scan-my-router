@@ -34,7 +34,9 @@ var WebScanner = (function () {
             this.command = cmd;
         }
         var defered = Q.defer();
-        var cmdline = ['ssh -i', this.sshKey, this.user + '@' + this.host,
+        var cmdline = ['ssh -i', this.sshKey,
+            this.user + '@' + this.host,
+            '-p ' + this.port,
             "'" + this.command + "'"].join(' ');
         console.log("running " + cmdline);
         console.log("...");
@@ -62,11 +64,15 @@ var WebScanner = (function () {
             that.lookedUpCount = 0;
             async.each(conns, function (conn, ecb) {
                 var scanner = that;
-                scanner.lookupHost(conn, function (e, d) {
+                WebScanner.lookupHost(conn.dstIp)
+                    .then(function (d) {
                     scanner.lookedUpCount++;
+                    conn.dstHost = d[0]; //use the first one for now
                     console.log('\n\nTotal: ' + scanner.totalCount + ' Looked:' + scanner.lookedUpCount);
                     console.log(scanner.tally(conn));
-                    ecb(e, d);
+                    ecb(null, d);
+                }, function (e) {
+                    ecb(e);
                 });
             }, function (err) {
                 console.log('lookup finished: ' + err);
@@ -90,27 +96,29 @@ var WebScanner = (function () {
         }
         return this.Summary;
     };
-    ///conform to async task signature.
-    WebScanner.prototype.lookupHost = function (con, cb) {
+    //return a promise of an array of resolved hosts(string)
+    WebScanner.lookupHost = function (ip) {
         var dns = require('dns');
-        if (!con) {
-            cb(null, con);
-            return;
-        }
+        var deferred = Q.defer();
         try {
-            console.log('lookup for ' + con.dstIp);
-            dns.reverse(con.dstIp, function (e, result) {
+            console.log('lookup for ' + ip);
+            dns.reverse(ip, function (e, result) {
                 if (!e) {
-                    con.dstHost = result[0];
+                    //con.dstHost = result[0];
+                    console.log(ip + ':' + result.join(','));
+                    deferred.resolve(result);
                 }
-                cb(null, con);
+                else {
+                    deferred.reject(e);
+                }
             });
         }
         catch (e) {
             //console.log('lookup for ' + con.dstIp + ' Failed');
             console.log(e);
-            cb(e, null);
+            deferred.reject(e);
         }
+        return deferred.promise;
     };
     WebScanner.parseResponse = function (output, stderr) {
         var ar = output.split('\n');

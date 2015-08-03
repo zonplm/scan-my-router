@@ -69,7 +69,9 @@ export class WebScanner implements SshClient {
             this.command = cmd;
         }
         var defered = Q.defer();
-        var cmdline = ['ssh -i', this.sshKey, this.user + '@' + this.host,
+        var cmdline = ['ssh -i', this.sshKey,
+            this.user + '@' + this.host,
+            '-p ' + this.port,
             "'" + this.command + "'"].join(' ');
         console.log("running " + cmdline);
         console.log("...");
@@ -99,11 +101,16 @@ export class WebScanner implements SshClient {
             that.lookedUpCount = 0;
             async.each(conns, function (conn, ecb) {
                     var scanner = that;
-                    scanner.lookupHost(conn, function (e, d) {
-                        scanner.lookedUpCount++;
-                        console.log('\n\nTotal: ' + scanner.totalCount + ' Looked:' + scanner.lookedUpCount);
-                        console.log(scanner.tally(conn));
-                        ecb(e, d);
+                    WebScanner.lookupHost(conn.dstIp)
+                        .then(function (d) {
+                            scanner.lookedUpCount++;
+                            conn.dstHost = d[0]; //use the first one for now
+                            console.log('\n\nTotal: ' + scanner.totalCount + ' Looked:' + scanner.lookedUpCount);
+                            console.log(scanner.tally(conn));
+                            ecb(null, d);
+                    },
+                    function(e){
+                        ecb(e);
                     });
                 },
                 function (err) {
@@ -131,29 +138,30 @@ export class WebScanner implements SshClient {
         return this.Summary;
     }
 
-    ///conform to async task signature.
-    private lookupHost(con:WebConnection, cb:(err, d)=> any) {
+    //return a promise of an array of resolved hosts(string)
+    public static lookupHost(ip:string) :Q.Promise<string[]> {
         var dns = require('dns');
-        if (!con) {
-            cb(null,con);
-            return;
-        }
 
+        var deferred = Q.defer();
         try {
-            console.log('lookup for ' + con.dstIp);
-            dns.reverse(con.dstIp, function (e, result) {
+            console.log('lookup for ' + ip);
+            dns.reverse(ip, function (e, result) {
                 if (!e) {
-                    con.dstHost = result[0];
-                    //console.log(con);
+                    //con.dstHost = result[0];
+                    console.log(ip + ':' + result.join(','));
+                    deferred.resolve(result);
                 }
-                cb(null, con);
+                else{
+                    deferred.reject(e);
+                }
             });
         }
         catch (e) {
             //console.log('lookup for ' + con.dstIp + ' Failed');
             console.log(e);
-            cb(e, null);
+            deferred.reject(e);
         }
+        return deferred.promise;
     }
 
     private static parseResponse(output:string, stderr:string):RawSshResponse {

@@ -1,4 +1,5 @@
 /// <reference path="typings/node/node.d.ts" />
+/// <reference path="typings/q/Q.d.ts" />
 export interface RawSshResponse {
     osInfo: string;
     release: string;
@@ -17,7 +18,7 @@ export interface SshClient {
     user: string;
     port: number;
     sshKey: string;
-    runCmd: (cb: (e: any, d: RawSshResponse) => void, cmd?: string) => any;
+    runCmd: (cmd?: string) => Q.Promise<RawSshResponse>;
 }
 export interface Callback {
     (error: any, result: any): any;
@@ -37,10 +38,10 @@ export declare class WebScanner implements SshClient {
     connections: WebConnection[];
     private _connections;
     constructor(host: string, port: number, user: string, sshKey: string, command?: string);
-    runCmd(cb: (e: any, d: RawSshResponse) => any, cmd?: string): void;
+    runCmd(cmd?: string): Q.Promise<RawSshResponse>;
     getTcpConnections(cb: (e: any, d: WebConnection[]) => void): void;
     tally(con?: WebConnection): any;
-    private lookupHost(con, cb);
-    private parseResponse(output, stderr);
-    private parseTcpline(line);
+    static lookupHost(ip: string): Q.Promise<string[]>;
+    private static parseResponse(output, stderr);
+    private static parseTcpline(line);
 }
